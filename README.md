@@ -45,11 +45,11 @@ This project is a joint venture between [Kody](https://kody.com) and Gicater, re
 1.  **Clone the repository:**
     ```bash
     git clone [Your Repository URL]
-    cd KodyOrderSync
+    cd kody-order-sync
     ```
 
 2.  **Configure Settings:**
-    *   Copy `appsettings.json` to `appsettings.Development.json` or `appsettings.Production.json` for your environment-specific settings.
+    *   Copy `appsettings.json` to `appsettings.Development.json` for your environment-specific settings.
     *   **IMPORTANT:** Never commit sensitive information (API keys, passwords) directly into `appsettings.json` in source control. Use user secrets, environment variables, or other secure configuration methods for production. Add `appsettings.Development.json` and `appsettings.Production.json` to your `.gitignore` file.
     *   Edit your configuration file (`appsettings.json` or environment-specific one) and fill in the `OrderSyncSettings` section.
 
