@@ -70,7 +70,6 @@ public class LiteDbStateRepository : IProcessingStateRepository, IDisposable
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to insert state for KodyOrderId {KodyOrderId}", state.KodyOrderId);
-            // Potentially rethrow or handle differently
             throw;
         }
 
@@ -156,7 +155,7 @@ public class LiteDbStateRepository : IProcessingStateRepository, IDisposable
 
     public void Dispose()
     {
-        _db?.Dispose();
+        _db.Dispose();
         GC.SuppressFinalize(this);
     }
 }

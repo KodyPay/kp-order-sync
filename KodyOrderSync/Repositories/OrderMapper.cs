@@ -88,7 +88,7 @@ public static class OrderMapper
         return new PosOrderStatusInfo
         {
             GicaterOrderHeadId = Convert.ToInt32(reader["order_head_id"]),
-            KodyOrderId = reader["check_name"].ToString(),
+            KodyOrderId =  reader["check_name"] != DBNull.Value ? reader["check_name"].ToString() : string.Empty,
             GicaterStatus = Convert.ToInt32(reader["status"]),
             IsMake = Convert.ToInt32(reader["is_make"]),
             GicaterOrderEndTime = reader["order_end_time"] != DBNull.Value

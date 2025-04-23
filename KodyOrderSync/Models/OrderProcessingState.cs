@@ -4,20 +4,19 @@ namespace KodyOrderSync.Models;
 
 public class OrderProcessingState
 {
-    [BsonId]
-    public ObjectId Id { get; set; }
+    [BsonId] public ObjectId Id { get; init; } = new();
 
-    public string KodyOrderId { get; set; }
+    public required string KodyOrderId { get; init; }
 
     // Gicater's internal Order ID (optional, for reference)
-    public string PosOrderId { get; set; } // Or int, depending on Gicater's type
+    public string? PosOrderId { get; init; }
 
     // The last status successfully reported BACK to KodyOrder API
-    public string LastStatusSentToKody { get; set; }
+    public string? LastStatusSentToKody { get; init; }
 
     // When the order was first pulled from KodyOrder by OrderSyncWorker
-    public DateTime OrderPulledTimestamp { get; set; }
+    public DateTime OrderPulledTimestamp { get; init; }
 
     // Timestamp for tracking state record age for maintenance/deletion
-    public DateTime LastUpdatedInStateDb { get; set; }
+    public DateTime? LastUpdatedInStateDb { get; set; }
 }
