@@ -37,6 +37,7 @@ public class MySqlOrderRepositoryTests(ITestOutputHelper output) : DatabaseInteg
     public async Task SaveOrderAsync_ShouldPersistOrder()
     {
         // Arrange
+        await DatabaseTestHelpers.SeedMenuItemsAsync(ConnectionString);
         var order = DatabaseTestHelpers.CreateTestOrder();
 
         // Act
@@ -45,15 +46,38 @@ public class MySqlOrderRepositoryTests(ITestOutputHelper output) : DatabaseInteg
         // Assert
         Assert.False(string.IsNullOrEmpty(posOrderId));
 
-        // Verify the order exists in database
         using var connection = new MySqlConnection(ConnectionString);
         await connection.OpenAsync();
-        using var cmd = connection.CreateCommand();
-        cmd.CommandText = "SELECT COUNT(*) FROM order_head WHERE check_name = @orderId AND pos_name = 'KODYORDER'";
-        cmd.Parameters.AddWithValue("@orderId", order.OrderId);
-        var count = Convert.ToInt32(await cmd.ExecuteScalarAsync());
 
-        Assert.Equal(1, count);
+        // Verify order_head record exists
+        using (var orderHeadCmd = connection.CreateCommand())
+        {
+            orderHeadCmd.CommandText = "SELECT COUNT(*) FROM order_head WHERE check_name = @orderId AND pos_name = 'KODYORDER'";
+            orderHeadCmd.Parameters.AddWithValue("@orderId", order.OrderId);
+            var count = Convert.ToInt32(await orderHeadCmd.ExecuteScalarAsync());
+            Assert.Equal(1, count);
+        }
+        
+        // Verify order_detail contains a record with menu item name
+        using (var orderDetailCmd = connection.CreateCommand())
+        {
+            orderDetailCmd.CommandText = @"
+                SELECT od.menu_item_name, od.menu_item_id
+                FROM order_detail od
+                WHERE od.order_head_id = @orderId";
+            orderDetailCmd.Parameters.AddWithValue("@orderId", posOrderId);
+        
+            using var reader = await orderDetailCmd.ExecuteReaderAsync();
+            Assert.True(await reader.ReadAsync(), "No order details found");
+        
+            string menuItemName = reader.GetString(reader.GetOrdinal("menu_item_name"));
+            int menuItemId = reader.GetInt32(reader.GetOrdinal("menu_item_id"));
+        
+            // Verify the menu item name and ID
+            Assert.False(string.IsNullOrEmpty(menuItemName), "Menu item name should not be empty");
+            Assert.Equal(101, menuItemId);
+            Assert.Equal("test item 101", menuItemName);
+        }
     }
 
     [Fact]

@@ -32,7 +32,8 @@ public static class DatabaseTestHelpers
             OrderItemId = "item-1",
             MerchantItemId = "menu-item-1",
             Quantity = 2,
-            UnitPrice = "10.00"
+            UnitPrice = "10.00",
+            IntegrationId = "101"
         };
 
         var orderItemCombo = new Order.Types.OrderItemOrCombo();
@@ -69,5 +70,22 @@ public static class DatabaseTestHelpers
 
             await cmd.ExecuteNonQueryAsync();
         }
+    }
+    
+    public static async Task SeedMenuItemsAsync(string connectionString)
+    {
+        using var connection = new MySqlConnection(connectionString);
+        await connection.OpenAsync();
+
+            using var cmd = connection.CreateCommand();
+            cmd.CommandText = @"
+            INSERT INTO menu_item (item_id, item_name1) 
+            VALUES (@itemId, @itemName)
+            ON DUPLICATE KEY UPDATE item_name1 = @itemName";
+        
+            cmd.Parameters.AddWithValue("@itemId", "101");
+            cmd.Parameters.AddWithValue("@itemName", "test item 101");
+        
+            await cmd.ExecuteNonQueryAsync();
     }
 }
