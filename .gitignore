@@ -1,0 +1,93 @@
+# Personal JetBrains Rider specific files
+.idea*/
+
+# User-specific files
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Build results
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+[Ww][Ii][Nn]32/
+[Ww][Ii][Nn]64/
+bld/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+
+# Visual Studio cache files
+.vs/
+*.csproj.user
+*.vbproj.user
+
+# Build Results of an ATL Project
+[Dd]ebugPS/
+[Rr]eleasePS/
+dlldata.c
+
+# NUnit plugin cache
+nunit-plugin-cache/
+
+# StyleCop analysis results
+StyleCopReport.xml
+
+.fsharp_project_cache/
+
+# Paket dependency manager
+.paket/paket.exe
+paket-files/
+
+# Fake build script settings file
+build.fsx.lock
+
+# FAKE build script cache
+.fake/
+
+# Rider Code Coverage
+*.dotCover
+
+# Test Results
+_key.pfx
+*.testsettings
+
+# Local secrets (IMPORTANT!)
+appsettings.Development.json
+secrets.json
+
+# Publish output
+publish/
+dist/
+
+# NuGet Packages
+*.nupkg
+# The packages folder can be ignored because of Package Restore
+**/[Pp]ackages/*
+# except build/, which is used as an MSBuild target.
+!**/[Pp]ackages/build/
+# Uncomment if necessary however generally it will be regenerated when needed
+#!**/[Pp]ackages/repositories.config
+
+# Windows Installer files
+*.cab
+*.msi
+*.msm
+*.msp
+
+# ClickOnce directory
+[Pp]ublish/
+
+# Mac specific files
+.DS_Store
+
+# Other
+*.docstates
+*.*.swp
+*.*~
+*.bak
