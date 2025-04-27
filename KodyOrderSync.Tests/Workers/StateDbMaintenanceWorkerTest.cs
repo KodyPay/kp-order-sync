@@ -68,6 +68,7 @@ namespace KodyOrderSync.Tests.Workers
                 collection.Insert(new OrderProcessingState
                 {
                     KodyOrderId = $"old-{i}",
+                    HashedKodyOrderId = IdHasher.HashOrderId($"old-{i}"),
                     LastUpdatedInStateDb = cutoffDate.AddDays(-i)
                 });
             }
@@ -79,6 +80,7 @@ namespace KodyOrderSync.Tests.Workers
                 collection.Insert(new OrderProcessingState
                 {
                     KodyOrderId = $"recent-{i}",
+                    HashedKodyOrderId = IdHasher.HashOrderId($"recent-{i}"),
                     LastUpdatedInStateDb = recentDate.AddHours(-i)
                 });
             }

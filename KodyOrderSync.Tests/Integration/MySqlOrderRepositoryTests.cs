@@ -53,7 +53,7 @@ public class MySqlOrderRepositoryTests(ITestOutputHelper output) : DatabaseInteg
         using (var orderHeadCmd = connection.CreateCommand())
         {
             orderHeadCmd.CommandText = "SELECT COUNT(*) FROM order_head WHERE check_name = @orderId AND pos_name = 'KODYORDER'";
-            orderHeadCmd.Parameters.AddWithValue("@orderId", order.OrderId);
+            orderHeadCmd.Parameters.AddWithValue("@orderId", IdHasher.HashOrderId(order.OrderId));
             var count = Convert.ToInt32(await orderHeadCmd.ExecuteScalarAsync());
             Assert.Equal(1, count);
         }
@@ -96,7 +96,7 @@ public class MySqlOrderRepositoryTests(ITestOutputHelper output) : DatabaseInteg
         Assert.NotNull(results);
         var resultList = results.ToList();
         Assert.Equal(3, resultList.Count);
-        Assert.All(resultList, r => Assert.NotNull(r.KodyOrderId));
+        Assert.All(resultList, r => Assert.NotNull(r.HashedKodyOrderId));
         Assert.All(resultList, r => Assert.True(r.IsMake == 1));
     }
 

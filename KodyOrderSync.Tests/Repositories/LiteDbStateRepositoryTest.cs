@@ -7,6 +7,7 @@ using KodyOrderSync.Repositories;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
+using Mysqlx.Expr;
 using Xunit;
 
 namespace KodyOrderSync.Tests.Repositories;
@@ -39,6 +40,7 @@ public class LiteDbStateRepositoryTests : IDisposable
         var state = new OrderProcessingState
         {
             KodyOrderId = "test-order-123",
+            HashedKodyOrderId = IdHasher.HashOrderId("test-order-123"),
             PosOrderId = "pos-456",
             LastStatusSentToKody = "Received",
             OrderPulledTimestamp = DateTime.UtcNow.AddMinutes(-10)
@@ -62,6 +64,7 @@ public class LiteDbStateRepositoryTests : IDisposable
         var state1 = new OrderProcessingState
         {
             KodyOrderId = "duplicate-id",
+            HashedKodyOrderId = IdHasher.HashOrderId("duplicate-id"),
             PosOrderId = "pos-1",
             LastStatusSentToKody = "Received"
         };
@@ -69,6 +72,7 @@ public class LiteDbStateRepositoryTests : IDisposable
         var state2 = new OrderProcessingState
         {
             KodyOrderId = "duplicate-id",
+            HashedKodyOrderId = IdHasher.HashOrderId("duplicate-id"),
             PosOrderId = "pos-2",
             LastStatusSentToKody = "Processing"
         };
@@ -99,6 +103,7 @@ public class LiteDbStateRepositoryTests : IDisposable
         var state = new OrderProcessingState
         {
             KodyOrderId = "update-test",
+            HashedKodyOrderId = IdHasher.HashOrderId("update-test"),
             PosOrderId = "pos-789",
             LastStatusSentToKody = "Received",
             OrderPulledTimestamp = DateTime.UtcNow.AddMinutes(-5)
@@ -123,12 +128,14 @@ public class LiteDbStateRepositoryTests : IDisposable
         var state1 = new OrderProcessingState
         {
             KodyOrderId = "old-order",
+            HashedKodyOrderId = IdHasher.HashOrderId("old-order"),
             OrderPulledTimestamp = oldTime
         };
 
         var state2 = new OrderProcessingState
         {
             KodyOrderId = "new-order",
+            HashedKodyOrderId = IdHasher.HashOrderId("new-order"),
             OrderPulledTimestamp = newTime
         };
 

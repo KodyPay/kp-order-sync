@@ -79,7 +79,7 @@ public class OrderStatusUpdateWorker(
     private async Task ProcessSingleStatusUpdateAsync(PosOrderStatusInfo posOrderInfo, CancellationToken stoppingToken)
     {
         // Sanity check KodyOrderId
-        if (string.IsNullOrEmpty(posOrderInfo.KodyOrderId))
+        if (string.IsNullOrEmpty(posOrderInfo.HashedKodyOrderId))
         {
             _logger.LogWarning("Found completed order in POS DB (ID: {PosOrderId}) without a KodyOrder ID. Skipping.",
                 posOrderInfo.GicaterOrderHeadId);
@@ -87,11 +87,11 @@ public class OrderStatusUpdateWorker(
         }
 
         // Get current state from LiteDB
-        var currentState = await _stateRepo.GetOrderStateByKodyIdAsync(posOrderInfo.KodyOrderId, stoppingToken);
+        var currentState = await _stateRepo.GetOrderStateByKodyIdAsync(posOrderInfo.HashedKodyOrderId, stoppingToken);
         if (currentState == null)
         {
             _logger.LogWarning("Found status update for KodyOrder ID {KodyOrderId} in POS, but no corresponding state found in local DB. Skipping.",
-                posOrderInfo.KodyOrderId);
+                posOrderInfo.HashedKodyOrderId);
             return;
         }
 
@@ -99,28 +99,28 @@ public class OrderStatusUpdateWorker(
         if (currentState.LastStatusSentToKody == KodyStatusForMakeComplete)
         {
             _logger.LogDebug("'{Status}' status for KodyOrder ID {KodyOrderId} was already sent previously. Skipping.",
-                KodyStatusForMakeComplete, posOrderInfo.KodyOrderId);
+                KodyStatusForMakeComplete, posOrderInfo.HashedKodyOrderId);
             return;
         }
 
         _logger.LogInformation("Detected 'is_make=1' for KodyOrder ID {KodyOrderId}. Previous status: '{OldStatus}'. Sending '{NewStatus}' update.",
-            posOrderInfo.KodyOrderId,
+            posOrderInfo.HashedKodyOrderId,
             currentState.LastStatusSentToKody ?? "N/A",
             KodyStatusForMakeComplete);
 
         // Send status update to KodyOrder
-        var response = await _kodyClient.UpdateOrderStatusAsync(posOrderInfo.KodyOrderId, OrderStatus.Completed, stoppingToken);
+        var response = await _kodyClient.UpdateOrderStatusAsync(posOrderInfo.HashedKodyOrderId, OrderStatus.Completed, stoppingToken);
 
         if (response.Success)
         {
-            await _stateRepo.SetLastStatusSentAsync(posOrderInfo.KodyOrderId, KodyStatusForMakeComplete, stoppingToken);
+            await _stateRepo.SetLastStatusSentAsync(posOrderInfo.HashedKodyOrderId, KodyStatusForMakeComplete, stoppingToken);
             _logger.LogInformation("Successfully sent '{Status}' status update for KodyOrder ID {KodyOrderId}",
-                KodyStatusForMakeComplete, posOrderInfo.KodyOrderId);
+                KodyStatusForMakeComplete, posOrderInfo.HashedKodyOrderId);
         }
         else
         {
             _logger.LogError("Failed to send '{Status}' status update for KodyOrder ID {KodyOrderId}",
-                KodyStatusForMakeComplete, posOrderInfo.KodyOrderId);
+                KodyStatusForMakeComplete, posOrderInfo.HashedKodyOrderId);
         }
     }
 }

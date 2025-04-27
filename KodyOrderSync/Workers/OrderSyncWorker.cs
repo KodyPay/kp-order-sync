@@ -69,6 +69,7 @@ public class OrderSyncWorker(
         var request = new GetOrdersRequest
         {
             StoreId = _settings.KodyStoreId,
+            StatusIn = {OrderStatus.Pending, OrderStatus.NewOrder},
             AfterDate = lastProcessedTime.HasValue
                 ? Google.Protobuf.WellKnownTypes.Timestamp.FromDateTime(lastProcessedTime.Value.ToUniversalTime())
                 : null,
@@ -116,6 +117,7 @@ public class OrderSyncWorker(
                 var initialState = new OrderProcessingState
                 {
                     KodyOrderId = kodyOrder.OrderId,
+                    HashedKodyOrderId = IdHasher.HashOrderId(kodyOrder.OrderId),
                     PosOrderId = posOrderId,
                     LastStatusSentToKody = null,
                     OrderPulledTimestamp = DateTime.UtcNow,

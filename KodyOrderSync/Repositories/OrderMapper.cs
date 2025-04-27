@@ -11,7 +11,7 @@ public static class OrderMapper
         {
             ["@checkId"] = 1, // Default check ID
             ["@posName"] = "KODYORDER", // Mark source as Kody
-            ["@checkName"] = order.OrderId, // Store Kody order ID in check_name
+            ["@checkName"] = IdHasher.HashOrderId(order.OrderId), // Store hashed Kody order ID
             ["@orderStartTime"] = order.DateCreated.ToDateTime(),
             ["@isMake"] = 0, // Not yet prepared
             ["@shouldAmount"] = decimal.Parse(order.TotalAmount),
@@ -88,7 +88,7 @@ public static class OrderMapper
         return new PosOrderStatusInfo
         {
             GicaterOrderHeadId = Convert.ToInt32(reader["order_head_id"]),
-            KodyOrderId =  reader["check_name"] != DBNull.Value ? reader["check_name"].ToString() : string.Empty,
+            HashedKodyOrderId =  reader["check_name"] != DBNull.Value ? reader["check_name"].ToString() : string.Empty,
             GicaterStatus = Convert.ToInt32(reader["status"]),
             IsMake = Convert.ToInt32(reader["is_make"]),
             GicaterOrderEndTime = reader["order_end_time"] != DBNull.Value

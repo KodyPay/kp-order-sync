@@ -69,6 +69,9 @@ public class OrderSyncWorkerTests : LoggingTestBase
             It.Is<GetOrdersRequest>(req =>
                 req.StoreId == _settings.KodyStoreId &&
                 req.AfterDate != null &&
+                req.StatusIn.Count == 2 && 
+                req.StatusIn.Contains(OrderStatus.Pending) && 
+                req.StatusIn.Contains(OrderStatus.NewOrder) &&
                 req.PageSize == 100),
             It.IsAny<CancellationToken>()
         ), Times.AtLeastOnce);
@@ -151,7 +154,7 @@ public class OrderSyncWorkerTests : LoggingTestBase
             .ReturnsAsync(new GetOrdersResponse { Orders = { orders } });
 
         _stateRepoMock.Setup(x => x.GetOrderStateByKodyIdAsync("order1", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new OrderProcessingState { KodyOrderId = "order1" });
+            .ReturnsAsync(new OrderProcessingState { KodyOrderId = "order1", HashedKodyOrderId =  IdHasher.HashOrderId("order1") });
 
         var worker = new OrderSyncWorker(
             _logger,
