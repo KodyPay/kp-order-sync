@@ -95,42 +95,35 @@ public class OrderSyncWorker(
             if (stoppingToken.IsCancellationRequested) break;
             
             _logger.LogDebug("Processing KodyOrder ID: {KodyOrderId}", kodyOrder.OrderId);
-
-            try
+            
+            // Check if already processed
+            var existingState = await _stateRepo.GetOrderStateByKodyIdAsync(kodyOrder.OrderId, stoppingToken);
+            if (existingState != null)
             {
-                // Check if already processed
-                var existingState = await _stateRepo.GetOrderStateByKodyIdAsync(kodyOrder.OrderId, stoppingToken);
-                if (existingState != null)
-                {
-                    _logger.LogWarning("KodyOrder ID {KodyOrderId} already exists in state DB. Skipping insertion.",
-                        kodyOrder.OrderId);
-                    continue;
-                }
-
-                // Save order to POS database
-                string posOrderId = await _posOrderRepo.SaveOrderAsync(kodyOrder, stoppingToken);
-
-                _logger.LogInformation("Saved KodyOrder ID {KodyOrderId} to POS DB with PosOrderId: {PosOrderId}",
-                    kodyOrder.OrderId, posOrderId);
-
-                // Create state record
-                var initialState = new OrderProcessingState
-                {
-                    KodyOrderId = kodyOrder.OrderId,
-                    HashedKodyOrderId = IdHasher.HashOrderId(kodyOrder.OrderId),
-                    PosOrderId = posOrderId,
-                    LastStatusSentToKody = null,
-                    OrderPulledTimestamp = DateTime.UtcNow,
-                };
-
-                await _stateRepo.AddProcessedOrderAsync(initialState, stoppingToken);
-                _logger.LogInformation("Successfully processed and saved KodyOrder ID {KodyOrderId} to POS and State DB.",
+                _logger.LogWarning("KodyOrder ID {KodyOrderId} already exists in state DB. Skipping insertion.",
                     kodyOrder.OrderId);
+                continue;
             }
-            catch (Exception ex)
+
+            // Save order to POS database, when error occurs, the process will be stopped until the next cycle
+            string posOrderId = await _posOrderRepo.SaveOrderAsync(kodyOrder, stoppingToken);
+
+            _logger.LogInformation("Saved KodyOrder ID {KodyOrderId} to POS DB with PosOrderId: {PosOrderId}",
+                kodyOrder.OrderId, posOrderId);
+
+            // Create state record
+            var initialState = new OrderProcessingState
             {
-                _logger.LogError(ex, "Failed to process or save KodyOrder ID {KodyOrderId}", kodyOrder.OrderId);
-            }
+                KodyOrderId = kodyOrder.OrderId,
+                HashedKodyOrderId = IdHasher.HashOrderId(kodyOrder.OrderId),
+                PosOrderId = posOrderId,
+                LastStatusSentToKody = null,
+                OrderPulledTimestamp = DateTime.UtcNow,
+            };
+
+            await _stateRepo.AddProcessedOrderAsync(initialState, stoppingToken);
+            _logger.LogInformation("Successfully processed and saved KodyOrder ID {KodyOrderId} to POS and State DB.",
+                kodyOrder.OrderId);
         }
     }
 }

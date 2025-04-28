@@ -9,6 +9,7 @@ namespace KodyOrderSync;
 public class KodyOrderClient: IKodyOrderClient
 {
     private readonly OrderService.OrderServiceClient _client;
+    private readonly string _storeId;
     private readonly Metadata _headers;
     private readonly ILogger<KodyOrderClient> _logger;
 
@@ -20,6 +21,9 @@ public class KodyOrderClient: IKodyOrderClient
         
         _logger.LogInformation("Initializing KodyOrderClient with API URL: {ApiUrl}", 
             string.IsNullOrEmpty(settings.KodyOrderApiBaseUrl) ? "(empty)" : settings.KodyOrderApiBaseUrl);
+        
+        _storeId = settings.KodyStoreId ?? throw new ArgumentNullException(nameof(settings.KodyStoreId),
+            "KodyStoreId is required in configuration");
         
         if (string.IsNullOrEmpty(settings.KodyOrderApiBaseUrl))
         {
@@ -62,6 +66,7 @@ public class KodyOrderClient: IKodyOrderClient
                 
             var request = new UpdateOrderStatusRequest
             {
+                StoreId = _storeId,
                 OrderId = orderId,
                 NewStatus = status
             };

@@ -87,7 +87,23 @@ public class LiteDbStateRepository : IProcessingStateRepository, IDisposable
         var state = _collection.FindOne(s => s.KodyOrderId == kodyOrderId);
         return Task.FromResult(state);
     }
+    
+    public Task<OrderProcessingState> GetOrderStateByHashedKodyIdAsync(string hashedKodyOrderId, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrEmpty(hashedKodyOrderId)) 
+            return Task.FromResult<OrderProcessingState>(null);
 
+        _logger.LogInformation("Retrieving order state for hashed ID {HashedKodyOrderId} from LiteDB.", hashedKodyOrderId);
+        var state = _collection.FindOne(s => s.HashedKodyOrderId == hashedKodyOrderId);
+    
+        if (state == null)
+        {
+            _logger.LogWarning("No order state found for hashed ID {HashedKodyOrderId}", hashedKodyOrderId);
+        }
+    
+        return Task.FromResult(state);
+    }
+    
     public Task SetLastStatusSentAsync(string kodyOrderId, string status, CancellationToken cancellationToken)
     {
         if (string.IsNullOrEmpty(kodyOrderId))

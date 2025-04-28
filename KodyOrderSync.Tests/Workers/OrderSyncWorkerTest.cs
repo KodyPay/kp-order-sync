@@ -177,13 +177,13 @@ public class OrderSyncWorkerTests : LoggingTestBase
     }
 
     [Fact]
-    public async Task ExecuteAsync_HandlesExceptions_ContinuesExecution()
+    public async Task ExecuteAsync_HandlesExceptions_TerminateExecution()
     {
         // Arrange
         var orders = new List<Order>
         {
-            new Order { OrderId = "order1" },
-            new Order { OrderId = "order2" }
+            new() { OrderId = "order1" },
+            new() { OrderId = "order2" }
         };
 
         _stateRepoMock.Setup(x => x.GetLastProcessedOrderTimestampAsync(It.IsAny<CancellationToken>()))
@@ -199,10 +199,6 @@ public class OrderSyncWorkerTests : LoggingTestBase
         _posOrderRepoMock.Setup(x =>
                 x.SaveOrderAsync(It.Is<Order>(o => o.OrderId == "order1"), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new Exception("Test exception"));
-
-        _posOrderRepoMock.Setup(x =>
-                x.SaveOrderAsync(It.Is<Order>(o => o.OrderId == "order2"), It.IsAny<CancellationToken>()))
-            .ReturnsAsync("pos123");
 
         var worker = new OrderSyncWorker(
             _logger,
@@ -221,6 +217,6 @@ public class OrderSyncWorkerTests : LoggingTestBase
         _stateRepoMock.Verify(x => x.AddProcessedOrderAsync(
             It.Is<OrderProcessingState>(s => s.KodyOrderId == "order2"),
             It.IsAny<CancellationToken>()
-        ), Times.Once);
+        ), Times.Never);
     }
 }

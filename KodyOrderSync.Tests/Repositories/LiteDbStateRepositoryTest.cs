@@ -7,7 +7,6 @@ using KodyOrderSync.Repositories;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
-using Mysqlx.Expr;
 using Xunit;
 
 namespace KodyOrderSync.Tests.Repositories;
@@ -85,12 +84,47 @@ public class LiteDbStateRepositoryTests : IDisposable
         var result = await _repository.GetOrderStateByKodyIdAsync("duplicate-id", CancellationToken.None);
         Assert.Equal("pos-1", result.PosOrderId);
     }
+    
+    [Fact]
+    public async Task GetOrderStateByHashedKodyIdAsync_ShouldReturnCorrectState()
+    {
+        // Arrange
+        var orderId = "hashed-test-order";
+        var hashedId = IdHasher.HashOrderId(orderId);
+        var state = new OrderProcessingState
+        {
+            KodyOrderId = orderId,
+            HashedKodyOrderId = hashedId,
+            PosOrderId = "pos-123",
+            LastStatusSentToKody = "Pending"
+        };
+        await _repository.AddProcessedOrderAsync(state, CancellationToken.None);
 
+        // Act
+        var result = await _repository.GetOrderStateByHashedKodyIdAsync(hashedId, CancellationToken.None);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(orderId, result.KodyOrderId);
+        Assert.Equal("pos-123", result.PosOrderId);
+    }
+    
     [Fact]
     public async Task GetOrderStateByKodyIdAsync_ShouldReturnNullForNonExistentId()
     {
         // Act
         var result = await _repository.GetOrderStateByKodyIdAsync("non-existent", CancellationToken.None);
+
+        // Assert
+        Assert.Null(result);
+    }
+    
+    
+    [Fact]
+    public async Task GetOrderStateByHashedKodyIdAsync_ShouldReturnNullForNonExistentHash()
+    {
+        // Act
+        var result = await _repository.GetOrderStateByHashedKodyIdAsync("non-existent-hash", CancellationToken.None);
 
         // Assert
         Assert.Null(result);
