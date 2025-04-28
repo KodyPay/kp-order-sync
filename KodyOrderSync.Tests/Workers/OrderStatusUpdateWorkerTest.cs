@@ -263,35 +263,40 @@ public class OrderStatusUpdateWorkerTests : LoggingTestBase
         ), Times.Never);
     }
 
-    // [Fact]
-    // public async Task ExecuteAsync_HandlesExceptions_ContinuesExecution()
-    // {
-    //     // Arrange
-    //     _orderRepoMock.Setup(x => x.GetOrderStatusUpdatesAsync(
-    //             It.IsAny<DateTime>(), 
-    //             It.IsAny<CancellationToken>()))
-    //         .ThrowsAsync(new Exception("Test exception"))
-    //         .ReturnsAsync(new List<PosOrderStatusInfo>()); // Second call returns empty list
-    //
-    //     var worker = new OrderStatusUpdateWorker(
-    //         _logger,
-    //         _orderRepoMock.Object,
-    //         _stateRepoMock.Object,
-    //         _kodyClientMock.Object,
-    //         _optionsMock.Object);
-    //
-    //     // Act
-    //     var cts = new CancellationTokenSource(TimeSpan.FromSeconds(3));
-    //     await worker.StartAsync(cts.Token);
-    //     await Task.Delay(2500); // Allow time for two executions
-    //     await worker.StopAsync(CancellationToken.None);
-    //
-    //     // Assert - should have called the repository at least twice (once throwing, once returning)
-    //     _orderRepoMock.Verify(x => x.GetOrderStatusUpdatesAsync(
-    //         It.IsAny<DateTime>(),
-    //         It.IsAny<CancellationToken>()
-    //     ), Times.AtLeast(2));
-    // }
+    [Fact]
+    public async Task ExecuteAsync_HandlesExceptions_ContinuesExecution()
+    {
+        // Arrange
+        int callCount = 0;
+        _orderRepoMock.Setup(x => x.GetOrderStatusUpdatesAsync(
+                It.IsAny<DateTime>(), 
+                It.IsAny<CancellationToken>()))
+            .Returns(() => {
+                callCount++;
+                if (callCount == 1)
+                    throw new Exception("Test exception");
+                return Task.FromResult<IEnumerable<PosOrderStatusInfo>>(new List<PosOrderStatusInfo>());
+            });
+    
+        var worker = new OrderStatusUpdateWorker(
+            _logger,
+            _orderRepoMock.Object,
+            _stateRepoMock.Object,
+            _kodyClientMock.Object,
+            _optionsMock.Object);
+    
+        // Act
+        var cts = new CancellationTokenSource(TimeSpan.FromSeconds(2));
+        await worker.StartAsync(cts.Token);
+        await Task.Delay(1500); // Allow time for two executions
+        await worker.StopAsync(CancellationToken.None);
+    
+        // Assert - should have called the repository at least twice (once throwing, once returning)
+        _orderRepoMock.Verify(x => x.GetOrderStatusUpdatesAsync(
+            It.IsAny<DateTime>(),
+            It.IsAny<CancellationToken>()
+        ), Times.AtLeast(2));
+    }
 
     [Fact]
     public async Task ExecuteAsync_SkipsStatusUpdates_ForOrdersWithoutKodyId()
