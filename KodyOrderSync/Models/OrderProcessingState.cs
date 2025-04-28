@@ -7,6 +7,9 @@ public class OrderProcessingState
     [BsonId] public ObjectId Id { get; init; } = new();
 
     public required string KodyOrderId { get; init; }
+    
+    // New field to store the hash that's used in the SQL database
+    public required string HashedKodyOrderId { get; init; }
 
     // Gicater's internal Order ID (optional, for reference)
     public string? PosOrderId { get; init; }

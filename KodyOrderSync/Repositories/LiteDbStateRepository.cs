@@ -38,6 +38,7 @@ public class LiteDbStateRepository : IProcessingStateRepository, IDisposable
 
             // Ensure necessary indexes exist
             _collection.EnsureIndex(x => x.KodyOrderId, true); // Unique index is good here
+            _collection.EnsureIndex(x => x.HashedKodyOrderId, true); // Unique index is good here
             _collection.EnsureIndex(x => x.LastUpdatedInStateDb); // Needed for efficient deletion
 
             _logger.LogInformation("LiteDB State Repository initialized at {DbPath}", dbPath);
@@ -59,6 +60,7 @@ public class LiteDbStateRepository : IProcessingStateRepository, IDisposable
         state.LastUpdatedInStateDb = DateTime.UtcNow;
         try
         {
+            _logger.LogInformation("Adding processed order: {OrderId}", state.KodyOrderId);
             _collection.Insert(state);
         }
         catch (LiteException lex) when (lex.ErrorCode == LiteException.INDEX_DUPLICATE_KEY)
@@ -81,10 +83,27 @@ public class LiteDbStateRepository : IProcessingStateRepository, IDisposable
     {
         if (string.IsNullOrEmpty(kodyOrderId)) return Task.FromResult<OrderProcessingState>(null);
 
+        _logger.LogInformation("Retrieving order state for KodyOrderId {KodyOrderId} from LiteDB.", kodyOrderId);
         var state = _collection.FindOne(s => s.KodyOrderId == kodyOrderId);
         return Task.FromResult(state);
     }
+    
+    public Task<OrderProcessingState> GetOrderStateByHashedKodyIdAsync(string hashedKodyOrderId, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrEmpty(hashedKodyOrderId)) 
+            return Task.FromResult<OrderProcessingState>(null);
 
+        _logger.LogInformation("Retrieving order state for hashed ID {HashedKodyOrderId} from LiteDB.", hashedKodyOrderId);
+        var state = _collection.FindOne(s => s.HashedKodyOrderId == hashedKodyOrderId);
+    
+        if (state == null)
+        {
+            _logger.LogWarning("No order state found for hashed ID {HashedKodyOrderId}", hashedKodyOrderId);
+        }
+    
+        return Task.FromResult(state);
+    }
+    
     public Task SetLastStatusSentAsync(string kodyOrderId, string status, CancellationToken cancellationToken)
     {
         if (string.IsNullOrEmpty(kodyOrderId))
@@ -109,6 +128,7 @@ public class LiteDbStateRepository : IProcessingStateRepository, IDisposable
                     // --- Copy existing fields ---
                     Id = s.Id, // Preserve the original ObjectId
                     KodyOrderId = s.KodyOrderId, // Preserve the KodyOrderId
+                    HashedKodyOrderId = s.HashedKodyOrderId, // Preserve the hashed KodyOrderId
                     PosOrderId = s.PosOrderId, // Preserve the PosOrderId
                     OrderPulledTimestamp = s.OrderPulledTimestamp, // Preserve the original pull time
 

@@ -12,6 +12,7 @@
 
   <ItemGroup>
     <PackageReference Include="FluentMigrator.Runner" Version="7.1.0" />
+    <PackageReference Include="JetBrains.Annotations" Version="2025.1.0-eap1" />
     <PackageReference Include="LiteDB" Version="5.0.21" />
     <PackageReference Include="MicroElements.Logging" Version="1.0.2" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.4" />

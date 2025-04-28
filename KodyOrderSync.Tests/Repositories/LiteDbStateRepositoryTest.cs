@@ -39,6 +39,7 @@ public class LiteDbStateRepositoryTests : IDisposable
         var state = new OrderProcessingState
         {
             KodyOrderId = "test-order-123",
+            HashedKodyOrderId = IdHasher.HashOrderId("test-order-123"),
             PosOrderId = "pos-456",
             LastStatusSentToKody = "Received",
             OrderPulledTimestamp = DateTime.UtcNow.AddMinutes(-10)
@@ -62,6 +63,7 @@ public class LiteDbStateRepositoryTests : IDisposable
         var state1 = new OrderProcessingState
         {
             KodyOrderId = "duplicate-id",
+            HashedKodyOrderId = IdHasher.HashOrderId("duplicate-id"),
             PosOrderId = "pos-1",
             LastStatusSentToKody = "Received"
         };
@@ -69,6 +71,7 @@ public class LiteDbStateRepositoryTests : IDisposable
         var state2 = new OrderProcessingState
         {
             KodyOrderId = "duplicate-id",
+            HashedKodyOrderId = IdHasher.HashOrderId("duplicate-id"),
             PosOrderId = "pos-2",
             LastStatusSentToKody = "Processing"
         };
@@ -81,12 +84,47 @@ public class LiteDbStateRepositoryTests : IDisposable
         var result = await _repository.GetOrderStateByKodyIdAsync("duplicate-id", CancellationToken.None);
         Assert.Equal("pos-1", result.PosOrderId);
     }
+    
+    [Fact]
+    public async Task GetOrderStateByHashedKodyIdAsync_ShouldReturnCorrectState()
+    {
+        // Arrange
+        var orderId = "hashed-test-order";
+        var hashedId = IdHasher.HashOrderId(orderId);
+        var state = new OrderProcessingState
+        {
+            KodyOrderId = orderId,
+            HashedKodyOrderId = hashedId,
+            PosOrderId = "pos-123",
+            LastStatusSentToKody = "Pending"
+        };
+        await _repository.AddProcessedOrderAsync(state, CancellationToken.None);
 
+        // Act
+        var result = await _repository.GetOrderStateByHashedKodyIdAsync(hashedId, CancellationToken.None);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(orderId, result.KodyOrderId);
+        Assert.Equal("pos-123", result.PosOrderId);
+    }
+    
     [Fact]
     public async Task GetOrderStateByKodyIdAsync_ShouldReturnNullForNonExistentId()
     {
         // Act
         var result = await _repository.GetOrderStateByKodyIdAsync("non-existent", CancellationToken.None);
+
+        // Assert
+        Assert.Null(result);
+    }
+    
+    
+    [Fact]
+    public async Task GetOrderStateByHashedKodyIdAsync_ShouldReturnNullForNonExistentHash()
+    {
+        // Act
+        var result = await _repository.GetOrderStateByHashedKodyIdAsync("non-existent-hash", CancellationToken.None);
 
         // Assert
         Assert.Null(result);
@@ -99,6 +137,7 @@ public class LiteDbStateRepositoryTests : IDisposable
         var state = new OrderProcessingState
         {
             KodyOrderId = "update-test",
+            HashedKodyOrderId = IdHasher.HashOrderId("update-test"),
             PosOrderId = "pos-789",
             LastStatusSentToKody = "Received",
             OrderPulledTimestamp = DateTime.UtcNow.AddMinutes(-5)
@@ -123,12 +162,14 @@ public class LiteDbStateRepositoryTests : IDisposable
         var state1 = new OrderProcessingState
         {
             KodyOrderId = "old-order",
+            HashedKodyOrderId = IdHasher.HashOrderId("old-order"),
             OrderPulledTimestamp = oldTime
         };
 
         var state2 = new OrderProcessingState
         {
             KodyOrderId = "new-order",
+            HashedKodyOrderId = IdHasher.HashOrderId("new-order"),
             OrderPulledTimestamp = newTime
         };
 

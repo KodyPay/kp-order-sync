@@ -7,6 +7,8 @@ public interface IProcessingStateRepository
     Task AddProcessedOrderAsync(OrderProcessingState state, CancellationToken cancellationToken);
 
     Task<OrderProcessingState> GetOrderStateByKodyIdAsync(string kodyOrderId, CancellationToken cancellationToken);
+    
+    Task<OrderProcessingState> GetOrderStateByHashedKodyIdAsync(string hashedKodyOrderId, CancellationToken cancellationToken);
 
     Task SetLastStatusSentAsync(string kodyOrderId, string status, CancellationToken cancellationToken);
 

@@ -6,7 +6,7 @@ public class PosOrderStatusInfo
     public required int GicaterOrderHeadId { get; init; }
 
     // The KodyOrder ID stored when inserting the order (ASSUMED COLUMN)
-    public required string KodyOrderId { get; init; }
+    public required string HashedKodyOrderId { get; init; }
 
     // The status value from Gicater's 'status' column (e.g., 1 = Paid/Closed)
     // Or potentially derived based on is_make, order_end_time etc.
