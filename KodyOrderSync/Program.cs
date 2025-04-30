@@ -4,6 +4,7 @@ using KodyOrderSync.Workers;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Hosting.WindowsServices;
+using Serilog;
 
 // Create the host builder with proper Windows service configuration
 var builder = Host.CreateDefaultBuilder(args)
@@ -13,6 +14,21 @@ var builder = Host.CreateDefaultBuilder(args)
     .UseWindowsService(options =>
     {
         options.ServiceName = "KodyOrderSyncService";
+    })
+    .UseSerilog((hostContext, services, configuration) =>
+    {
+        // Ensure log directory exists
+        var logPath = hostContext.Configuration["Serilog:WriteTo:1:Args:path"] ?? "logs/kodyordersync-.log";
+        var logDirectory = Path.GetDirectoryName(logPath);
+        if (!string.IsNullOrEmpty(logDirectory) && !Directory.Exists(logDirectory))
+        {
+            Directory.CreateDirectory(logDirectory);
+        }
+
+        // Use configuration from appsettings.json
+        configuration
+            .ReadFrom.Configuration(hostContext.Configuration)
+            .ReadFrom.Services(services);
     })
     .ConfigureServices((hostContext, services) =>
     {

@@ -24,7 +24,7 @@ public class OrderSyncWorkerTests : LoggingTestBase
     private readonly OrderSyncSettings _settings;
 
     public OrderSyncWorkerTests(ITestOutputHelper output) 
-        : base(output, typeof(OrderSyncWorker))
+        : base(output)
     {
         _logger = CreateLogger<OrderSyncWorker>(); // Create typed logger
         _kodyClientMock = new Mock<IKodyOrderClient>();
