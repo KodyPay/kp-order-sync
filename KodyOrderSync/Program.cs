@@ -43,11 +43,9 @@ var builder = Host.CreateDefaultBuilder(args)
         services.AddHostedService<OrderSyncWorker>();
         services.AddHostedService<OrderStatusUpdateWorker>();
     });
-
-
-var type = typeof(LiteDB.LiteDatabase);
-Console.WriteLine(type.Assembly.GetName().Version);
-
-// Build and run the host
 var host = builder.Build();
+
+Log.Information("KodyOrderSync version {Version} starting up", VersionInfo.Version);
+Log.Information("Build: {InformationalVersion}", VersionInfo.InformationalVersion);
+Log.Information("Compatible with POS version {PosVersion}", VersionInfo.CompatiblePosVersion);
 await host.RunAsync();

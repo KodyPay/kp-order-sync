@@ -11,7 +11,6 @@ public abstract class DatabaseIntegrationTestBase : LoggingTestBase, IAsyncLifet
 {
     private readonly MySqlTestContainer _dbContainer;
     protected string ConnectionString;
-    protected readonly IServiceProvider ServiceProvider;
 
     protected DatabaseIntegrationTestBase(ITestOutputHelper output)
         : base(output)
@@ -24,7 +23,6 @@ public abstract class DatabaseIntegrationTestBase : LoggingTestBase, IAsyncLifet
         // Build service provider with required services
         var services = new ServiceCollection();
         ConfigureServices(services);
-        ServiceProvider = services.BuildServiceProvider();
     }
 
     protected virtual void ConfigureServices(IServiceCollection services)
