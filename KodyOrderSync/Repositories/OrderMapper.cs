@@ -15,22 +15,27 @@ public static class OrderMapper
             ["@orderStartTime"] = order.DateCreated.ToDateTime(),
             ["@isMake"] = 0, // Not yet prepared
             ["@shouldAmount"] = decimal.Parse(order.TotalAmount),
-            ["@tableId"] = 0, // Default table
-            ["@eatType"] = 0, // Default eat type, dining in
+            ["@actualAmount"] = decimal.Parse(order.TotalAmount),
+            ["@tableId"] = -1, // Do not use location number, instead indicate it to be collected at counter
+            ["@tableName"] = "ToGo-" + (order.LocationNumber?.Length > 0 
+                ? order.LocationNumber[..Math.Min(order.LocationNumber.Length, 25)] 
+                : string.Empty),// Gicater does not actually use the location number, just use it to reference the location sent by Kody
+            ["@eatType"] = 1, // Default eat type, ToGo/Self-Collect
             ["@remark"] = order.OrderNotes ?? string.Empty,
             ["@serviceAmount"] = order.ServiceChargeAmount != null ? 
-                decimal.Parse(order.ServiceChargeAmount) : 0m
+                decimal.Parse(order.ServiceChargeAmount) : 0m,
+            ["@status"] = 1 // Paid
         };
 
         string sql = @"
             INSERT INTO order_head (
                 check_id, pos_name, check_name, order_start_time, 
-                should_amount, is_make, table_id, eat_type, remark, 
+                should_amount, actual_amount, is_make, table_id, table_name, eat_type, remark, 
                 service_amount, status
             ) VALUES (
                 @checkId, @posName, @checkName, @orderStartTime, 
-                @shouldAmount, @isMake, @tableId, @eatType, @remark, 
-                @serviceAmount, 0
+                @shouldAmount, @actualAmount, @isMake, @tableId, @tableName, @eatType, @remark, 
+                @serviceAmount, @status
             );
             SELECT LAST_INSERT_ID();";
 
@@ -48,7 +53,7 @@ public static class OrderMapper
             ) VALUES (
                 @orderHeadId, @checkId, @menuItemId, @menuItemName,
                 @productPrice, @quantity, @actualPrice, @salesAmount,
-                @description, @orderTime, 0
+                @description, @orderTime, @isMake
             );";
 
         var parametersList = new List<Dictionary<string, object>>();
@@ -69,11 +74,12 @@ public static class OrderMapper
                     ["@menuItemId"] = int.TryParse(item.IntegrationId, out int menuId) ? menuId : 0,
                     ["@menuItemName"] = "not fill yet",
                     ["@productPrice"] = unitPrice,
-                    ["@quantity"] = quantity,
                     ["@actualPrice"] = unitPrice,
+                    ["@quantity"] = quantity,
                     ["@salesAmount"] = totalPrice,
                     ["@description"] = item.ItemNotes ?? string.Empty,
-                    ["@orderTime"] = order.DateCreated.ToDateTime()
+                    ["@orderTime"] = order.DateCreated.ToDateTime(),
+                    ["@isMake"] = 0 // Not yet prepared
                 };
 
                 parametersList.Add(parameters);
