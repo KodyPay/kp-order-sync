@@ -20,7 +20,7 @@ public static class OrderMapper
             ["@tableName"] = "ToGo-" + (order.LocationNumber?.Length > 0 
                 ? order.LocationNumber[..Math.Min(order.LocationNumber.Length, 25)] 
                 : string.Empty),// Gicater does not actually use the location number, just use it to reference the location sent by Kody
-            ["@eatType"] = 1, // Default eat type, ToGo/Self-Collect
+            ["@eatType"] = 2, // Default eat type, ToGo/Self-Collect
             ["@remark"] = order.OrderNotes ?? string.Empty,
             ["@serviceAmount"] = order.ServiceChargeAmount != null ? 
                 decimal.Parse(order.ServiceChargeAmount) : 0m,
