@@ -44,14 +44,14 @@ This project is a joint venture between [Kody](https://kody.com) and Gicater, re
 
 1.  **Clone the repository:**
     ```bash
-    git clone [Your Repository URL]
+    git clone git@github.com:KodyPay/kp-order-sync.git
     cd kody-order-sync
     ```
 
 2.  **Configure Settings:**
-    *   Copy `appsettings.json` to `appsettings.Development.json` for your environment-specific settings.
-    *   **IMPORTANT:** Never commit sensitive information (API keys, passwords) directly into `appsettings.json` in source control. Use user secrets, environment variables, or other secure configuration methods for production. Add `appsettings.Development.json` and `appsettings.Production.json` to your `.gitignore` file.
-    *   Edit your configuration file (`appsettings.json` or environment-specific one) and fill in the `OrderSyncSettings` section.
+    *   Adjust `appsettings.json` for your environment-specific settings.
+    *   **IMPORTANT:** Never commit sensitive information (API keys, passwords) directly into `appsettings.json` in source control. Use user secrets, environment variables, or other secure configuration methods for production.
+    *   Edit your configuration file (`appsettings.json`) and fill in the `OrderSyncSettings` section.
 
 3.  **Build the project:**
     ```bash
@@ -63,7 +63,32 @@ This project is a joint venture between [Kody](https://kody.com) and Gicater, re
     dotnet publish --configuration Release --runtime win-x64 --output ./publish --self-contained false
     # Use --self-contained true if the target machine might not have the correct .NET runtime installed
     ```
+## Runtime Dependencies
 
+The service requires the following components to run properly:
+
+- **Runtime:**
+    - **.NET 8.0 Runtime** - Required base runtime
+    - **ASP.NET Core Runtime 8.0** - Required for Microsoft.Extensions components
+- **Database Systems:**
+    - **LiteDB:** Used for local state persistence to prevent duplicate order processing
+- **External Services:**
+    - **KodyOrder API:** Requires network access to the configured endpoint
+    - **MySQL:** For the local POS database (Gicater) - requires the MySQL Connector/NET to be installed on the target machine
+- **Core Libraries:**
+    - **Serilog:** For structured logging
+    - **Microsoft.Extensions.Hosting:** For the hosted service implementation
+    - **Microsoft.Extensions.DependencyInjection:** For dependency injection container
+    - **Microsoft.Extensions.Configuration:** For configuration management
+    - **Windows Service components:** For running as a background Windows service
+
+### Version Information
+
+The application displays the following version details at startup:
+- **Assembly Version:** The core version number (e.g., 1.0.0.0)
+- **Informational Version:** Includes alpha/beta status and Git commit information
+- **Compatible POS Version:** Indicates which version of the POS system this release supports
+- 
 ## Installation as a Windows Service
 
 1.  Open **Command Prompt** or **PowerShell as Administrator**.

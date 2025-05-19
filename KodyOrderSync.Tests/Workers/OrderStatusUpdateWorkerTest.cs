@@ -24,7 +24,7 @@ public class OrderStatusUpdateWorkerTests : LoggingTestBase
     private readonly OrderSyncSettings _settings;
 
     public OrderStatusUpdateWorkerTests(ITestOutputHelper output) 
-        : base(output, typeof(OrderStatusUpdateWorker))
+        : base(output)
     {
         _logger = CreateLogger<OrderStatusUpdateWorker>();
         _kodyClientMock = new Mock<IKodyOrderClient>();

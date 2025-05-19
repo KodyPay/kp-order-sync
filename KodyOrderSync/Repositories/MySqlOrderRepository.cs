@@ -32,90 +32,143 @@ public class MySqlOrderRepository : IOrderRepository
 
             using var transaction = await connection.BeginTransactionAsync(cancellationToken);
 
-            try
+
+            // Insert order header
+            var (headerSql, headerParams) = OrderMapper.MapOrderToInsertSql(order);
+            int orderHeadId;
+
+            // Create a single command for all operations
+            using var cmd = connection.CreateCommand();
+            cmd.Transaction = transaction;
+
+            // Execute header SQL
+            cmd.CommandText = headerSql;
+            foreach (var param in headerParams)
+                cmd.Parameters.AddWithValue(param.Key, param.Value);
+            orderHeadId = Convert.ToInt32(await cmd.ExecuteScalarAsync(cancellationToken));
+            cmd.Parameters.Clear();
+
+            // Get menu item IDs from order items
+            var menuItemIds = new HashSet<int>();
+            foreach (var orderItemCombo in order.Items)
             {
-                // Insert order header
-                var (headerSql, headerParams) = OrderMapper.MapOrderToInsertSql(order);
-                int orderHeadId;
-
-                using (var cmd = connection.CreateCommand())
-                {
-                    cmd.Transaction = transaction;
-                    cmd.CommandText = headerSql;
-
-                    foreach (var param in headerParams)
-                        cmd.Parameters.AddWithValue(param.Key, param.Value);
-
-                    // Get the auto-generated order_head_id
-                    orderHeadId = Convert.ToInt32(await cmd.ExecuteScalarAsync(cancellationToken));
-                }
-                
-                // Get unique menu item IDs from order items
-                var menuItemIds = new HashSet<int>();
-                foreach (var orderItemCombo in order.Items)
-                {
-                    if (orderItemCombo.Item != null && int.TryParse(orderItemCombo.Item.IntegrationId, out int menuId))
-                    {
-                        menuItemIds.Add(menuId);
-                    }
-                }
-
-                // Fetch menu item names from menu_item table
-                var menuItems = new Dictionary<int, string>();
-                if (menuItemIds.Any())
-                {
-                    using var cmd = connection.CreateCommand();
-                    cmd.Transaction = transaction;
-                    cmd.CommandText = "SELECT item_id, item_name1 FROM menu_item WHERE item_id IN (" + 
-                                      string.Join(",", menuItemIds) + ")";
-                
-                    using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
-                    while (await reader.ReadAsync(cancellationToken))
-                    {
-                        int itemId = reader.GetInt32("item_id");
-                        string itemName = reader.GetString("item_name1");
-                        menuItems[itemId] = itemName;
-                    }
-                }
-
-                // Insert order items
-                var (detailSql, detailParamsList) = OrderMapper.MapOrderItemsToInsertSql(order, orderHeadId);
-
-                foreach (var itemParams in detailParamsList)
-                {
-                    // Update menu item name if available
-                    if (itemParams["@menuItemId"] is int menuItemId && menuItems.TryGetValue(menuItemId, out var name))
-                    {
-                        itemParams["@menuItemName"] = name;
-                    }
-                    
-                    using var cmd = connection.CreateCommand();
-                    cmd.Transaction = transaction;
-                    cmd.CommandText = detailSql;
-
-                    foreach (var param in itemParams)
-                        cmd.Parameters.AddWithValue(param.Key, param.Value);
-
-                    await cmd.ExecuteNonQueryAsync(cancellationToken);
-                }
-
-                await transaction.CommitAsync(cancellationToken);
-
-                _logger.LogInformation("Saved KodyOrder ID {KodyOrderId} to MySQL with POS ID {PosOrderId}",
-                    order.OrderId, orderHeadId);
-
-                return orderHeadId.ToString();
+                if (orderItemCombo.Item != null && int.TryParse(orderItemCombo.Item.IntegrationId, out int menuId))
+                    menuItemIds.Add(menuId);
             }
-            catch (Exception ex)
+
+            // Fetch menu item names
+            var menuItems = new Dictionary<int, string>();
+            if (menuItemIds.Any())
             {
-                await transaction.RollbackAsync(cancellationToken);
-                _logger.LogError(ex, "Failed to save order {OrderId} to MySQL", order.OrderId);
-                throw;
+                cmd.CommandText = "SELECT item_id, item_name1 FROM menu_item WHERE item_id IN (" +
+                                  string.Join(",", menuItemIds) + ")";
+                using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
+                while (await reader.ReadAsync(cancellationToken))
+                {
+                    int itemId = reader.GetInt32("item_id");
+                    string itemName = reader.GetString("item_name1");
+                    menuItems[itemId] = itemName;
+                }
+
+                cmd.Parameters.Clear();
             }
+
+            // Insert order items
+            var (detailSql, detailParamsList) = OrderMapper.MapOrderItemsToInsertSql(order, orderHeadId);
+            foreach (var itemParams in detailParamsList)
+            {
+                if (itemParams["@menuItemId"] is int menuItemId && menuItems.TryGetValue(menuItemId, out var name))
+                    itemParams["@menuItemName"] = name;
+
+                cmd.CommandText = detailSql;
+                cmd.Parameters.Clear();
+                foreach (var param in itemParams)
+                    cmd.Parameters.AddWithValue(param.Key, param.Value);
+                await cmd.ExecuteNonQueryAsync(cancellationToken);
+            }
+
+
+
+            // Insert print record
+            string paymentName = "KODYORDER";
+            string currentTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+            cmd.CommandText = @"
+                    INSERT INTO order_detail(
+                        order_head_id, check_id, menu_item_id, menu_item_name,
+                        product_price, actual_price, order_employee_name,
+                        pos_device_id, pos_name, order_time)
+                    VALUES(
+                        @orderHeadId, 1, -3, @itemName,
+                        0, 0, @employeeName,
+                        0, @posName, NOW())";
+            cmd.Parameters.Clear();
+            cmd.Parameters.AddWithValue("@orderHeadId", orderHeadId);
+            cmd.Parameters.AddWithValue("@itemName", $"**{paymentName} {currentTime}**");
+            cmd.Parameters.AddWithValue("@employeeName", paymentName);
+            cmd.Parameters.AddWithValue("@posName", paymentName);
+            await cmd.ExecuteNonQueryAsync(cancellationToken);
+            
+            // Insert payment record in order_detail
+            decimal checkAmount = decimal.Parse(order.TotalAmount);
+            cmd.CommandText = @"
+                    INSERT INTO order_detail(
+                        order_head_id, check_id, menu_item_id, menu_item_name,
+                        product_price, actual_price, quantity,  
+                        order_employee_name, pos_device_id, pos_name, order_time, 
+                        discount_id)
+                    VALUES(
+                        @orderHeadId, 1, -2, @paymentInfo,
+                        0, 0, 0,  
+                        @employeeName, 0, @posName, NOW(),
+                        0)";
+            cmd.Parameters.Clear();
+            cmd.Parameters.AddWithValue("@orderHeadId", orderHeadId);
+            cmd.Parameters.AddWithValue("@paymentInfo", $"{paymentName}:{checkAmount:0.00}");
+            cmd.Parameters.AddWithValue("@employeeName", paymentName);
+            cmd.Parameters.AddWithValue("@posName", paymentName);
+            await cmd.ExecuteNonQueryAsync(cancellationToken);
+
+            // Get inserted ID, find tender_media, and insert payment
+            cmd.CommandText = "SELECT LAST_INSERT_ID()";
+            cmd.Parameters.Clear();
+            long orderDetailId = Convert.ToInt64(await cmd.ExecuteScalarAsync(cancellationToken));
+            
+            cmd.CommandText = "SELECT tender_media_id FROM tender_media WHERE tender_media_name LIKE '%kody%'";
+            var result = await cmd.ExecuteScalarAsync(cancellationToken);
+            int tenderMediaId = result != null ? Convert.ToInt32(result) : 0;
+            
+            cmd.CommandText = @"
+                    INSERT INTO payment(
+                        order_head_id, check_id, tender_media_id, total,
+                        employee_id, payment_time, pos_device_id,
+                        order_detail_id)
+                    VALUES(
+                        @orderHeadId, 1, @tenderMedia, @amount,
+                        @employeeId, NOW(), @posDeviceId,
+                        @orderDetailId)";
+            cmd.Parameters.Clear();
+            cmd.Parameters.AddWithValue("@orderHeadId", orderHeadId);
+            cmd.Parameters.AddWithValue("@amount", checkAmount);
+            cmd.Parameters.AddWithValue("@employeeId", 0);
+            cmd.Parameters.AddWithValue("@posDeviceId", 0);
+            cmd.Parameters.AddWithValue("@orderDetailId", orderDetailId);
+            cmd.Parameters.AddWithValue("@tenderMedia", tenderMediaId);
+            await cmd.ExecuteNonQueryAsync(cancellationToken);
+            
+            await transaction.CommitAsync(cancellationToken);
+
+            _logger.LogInformation("Saved KodyOrder ID {KodyOrderId} to MySQL with POS ID {PosOrderId}",
+                order.OrderId, orderHeadId);
+
+            return orderHeadId.ToString();
         }
-        catch (MySqlException ex)
+        catch (Exception ex)
         {
-            _logger.LogError(ex, "Database error when saving order {OrderId}", order.OrderId);
+            string errorMessage = ex is MySqlException
+                ? "Database error when saving order {OrderId}"
+                : "Failed to save order {OrderId} to MySQL";
+
+            _logger.LogError(ex, errorMessage, order.OrderId);
             throw;
         }
     }

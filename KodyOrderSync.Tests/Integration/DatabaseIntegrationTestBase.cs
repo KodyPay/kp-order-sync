@@ -9,22 +9,20 @@ namespace KodyOrderSync.Tests.Integration;
 
 public abstract class DatabaseIntegrationTestBase : LoggingTestBase, IAsyncLifetime
 {
-    private readonly MySqlTestContainer DbContainer;
+    private readonly MySqlTestContainer _dbContainer;
     protected string ConnectionString;
-    protected readonly IServiceProvider ServiceProvider;
 
     protected DatabaseIntegrationTestBase(ITestOutputHelper output)
-        : base(output, typeof(DatabaseIntegrationTestBase))
+        : base(output)
     {
         // Create the MySQL test container
-        DbContainer = new MySqlTestContainer(output, CreateLogger<MySqlTestContainer>());
+        _dbContainer = new MySqlTestContainer(output, CreateLogger<MySqlTestContainer>());
 
         // ConnectionString = DbContainer.ConnectionString;
 
         // Build service provider with required services
         var services = new ServiceCollection();
         ConfigureServices(services);
-        ServiceProvider = services.BuildServiceProvider();
     }
 
     protected virtual void ConfigureServices(IServiceCollection services)
@@ -36,8 +34,8 @@ public abstract class DatabaseIntegrationTestBase : LoggingTestBase, IAsyncLifet
     public virtual async Task InitializeAsync()
     {
         // Start the container
-        await DbContainer.InitializeAsync();
-        ConnectionString = DbContainer.ConnectionString;
+        await _dbContainer.InitializeAsync();
+        ConnectionString = _dbContainer.ConnectionString;
 
         // Apply migrations from project
         string migrationsPath = Path.Combine(
@@ -46,12 +44,12 @@ public abstract class DatabaseIntegrationTestBase : LoggingTestBase, IAsyncLifet
             "KodyOrderSync.Tests",
             "Migrations");
 
-        await DbContainer.ApplyMigrationsAsync(migrationsPath);
+        await _dbContainer.ApplyMigrationsAsync(migrationsPath);
     }
 
     // This runs after each test
     public virtual async Task DisposeAsync()
     {
-        await DbContainer.DisposeAsync();
+        await _dbContainer.DisposeAsync();
     }
 }
